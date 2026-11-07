@@ -1,7 +1,10 @@
+const isLocalLiveServer =
+    ["127.0.0.1", "localhost"].includes(window.location.hostname) &&
+    window.location.port === "5500";
 
-const API_URL = window.location.port === "8000"
-    ? window.location.origin
-    : "http://127.0.0.1:8000";
+const API_URL = isLocalLiveServer
+    ? "http://127.0.0.1:8000"
+    : window.location.origin;
 
 // Get form elements
 const loginForm = document.getElementById("loginForm");
