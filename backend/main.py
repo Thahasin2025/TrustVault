@@ -1,4 +1,3 @@
-
 import logging
 import os
 import uuid
@@ -28,7 +27,7 @@ from sqlalchemy.sql import func
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from backend import models
-from backend.database import SessionLocal
+from backend.database import SessionLocal, Base, engine
 from backend.auth import (
     hash_password,
     verify_password,
@@ -48,6 +47,9 @@ from backend.login_throttle import (
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+# Database lo tables lekapothe automatic ga create chestundi
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="TrustVault",
