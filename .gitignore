@@ -1,0 +1,25 @@
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+
+# Secret credentials
+.env
+.env.*
+!.env.example
+
+# Private uploaded documents
+uploads/*
+!uploads/.gitkeep
+
+# Testing files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editor files
+.vscode/

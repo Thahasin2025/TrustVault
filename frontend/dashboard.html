@@ -1,0 +1,2724 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustVault - Dashboard</title>
+    <script>
+        if (
+            ["localhost", "127.0.0.1"].includes(window.location.hostname) &&
+            window.location.port !== "8000"
+        ) {
+            window.location.replace(
+                "http://" + window.location.hostname + ":8000/"
+            );
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        .admin-activity-table caption {
+            padding: 0 14px 12px;
+            color: #64748b;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        body {
+            background: #f4f6fb;
+            color: #263248;
+        }
+
+        .sidebar {
+            width: 240px;
+            height: 100vh;
+            background: #17243b;
+            color: white;
+            position: fixed;
+            padding: 25px 18px;
+        }
+
+        .logo {
+            font-size: 25px;
+            font-weight: bold;
+            margin-bottom: 40px;
+        }
+
+        .nav-item {
+            padding: 14px;
+            margin: 10px 0;
+            border-radius: 8px;
+            color: #d5deec;
+            cursor: pointer;
+        }
+
+        .nav-item.active,
+        .nav-item:hover {
+            background: #2d4163;
+            color: white;
+        }
+
+        .main {
+            margin-left: 240px;
+            padding: 30px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            gap: 15px;
+        }
+
+        .topbar h1 {
+            font-size: 26px;
+        }
+
+        .user-info {
+            background: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .welcome {
+            margin-bottom: 25px;
+        }
+
+        .welcome p {
+            color: #718096;
+            margin-top: 8px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+        }
+
+        .card h3 {
+            color: #718096;
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+
+        .card h2 {
+            font-size: 30px;
+            color: #263c60;
+        }
+
+        .documents,
+        .content-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        .documents h2,
+        .content-card h2 {
+            margin-bottom: 15px;
+        }
+
+        .empty {
+            padding: 35px;
+            text-align: center;
+            color: #718096;
+        }
+
+        button {
+            border: none;
+            background: #315bba;
+            color: white;
+            padding: 11px 18px;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #23458f;
+        }
+
+        .document-card {
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .document-card p {
+            margin-top: 8px;
+        }
+
+        .document-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .share-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .share-controls select {
+            min-width: 220px;
+            padding: 9px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .share-controls label {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .share-controls input {
+            width: auto;
+            margin: 0;
+        }
+
+        .share-controls .permission-label {
+            white-space: nowrap;
+        }
+
+        .permission-entry {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .permission-entry p {
+            margin: 0;
+        }
+
+        .permission-message {
+            margin-top: 8px;
+        }
+
+        .admin-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .admin-user select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .audit-entry {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            overflow-wrap: anywhere;
+        }
+
+        .admin-activity-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .admin-activity-table {
+            width: 100%;
+            min-width: 720px;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .admin-activity-table th {
+            padding: 12px 14px;
+            color: #64748b;
+            background: #f8fafc;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .admin-activity-table td {
+            padding: 14px;
+            border-bottom: 1px solid #e8edf4;
+            color: #334155;
+            vertical-align: middle;
+        }
+
+        .admin-activity-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .activity-action {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .activity-user {
+            display: block;
+            font-weight: 600;
+        }
+
+        .activity-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .activity-status::before {
+            display: inline-grid;
+            width: 17px;
+            height: 17px;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 12px;
+            content: "✓";
+        }
+
+        .activity-status.success {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .activity-status.failed {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        .activity-status.failed::before {
+            content: "×";
+        }
+
+        .activity-status.restricted {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .activity-status.restricted::before {
+            content: "!";
+        }
+
+        .audit-integrity-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .audit-integrity-header p {
+            margin-top: 6px;
+            color: #64748b;
+        }
+
+        .audit-integrity-header button {
+            width: auto;
+            flex: 0 0 auto;
+        }
+
+        .verification-message {
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .verification-message.success {
+            color: #166534;
+            background: #dcfce7;
+        }
+
+        .verification-message.failed {
+            color: #991b1b;
+            background: #fee2e2;
+        }
+
+        .verification-message.caution {
+            margin-top: 14px;
+            color: #78350f;
+            background: #fffbeb;
+            font-weight: 400;
+            line-height: 1.55;
+        }
+
+        .verification-message.pending {
+            color: #475569;
+            background: #f1f5f9;
+        }
+
+        .verification-analysis {
+            display: grid;
+            gap: 14px;
+            margin: 18px 0;
+        }
+
+        .verification-analysis-block {
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            line-height: 1.55;
+        }
+
+        .verification-analysis-block h3 {
+            margin-bottom: 8px;
+            color: #1e293b;
+            font-size: 15px;
+        }
+
+        .verification-analysis-block.invalid {
+            border-color: #fecaca;
+            background: #fff7f7;
+            color: #7f1d1d;
+        }
+
+        .verification-analysis-block.current-key {
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+            color: #14532d;
+        }
+
+        .verification-analysis-block.note {
+            border-color: #fde68a;
+            background: #fffbeb;
+            color: #78350f;
+        }
+
+        .verification-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .verification-metric {
+            padding: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 9px;
+            background: #fff;
+        }
+
+        .verification-metric dt {
+            margin-bottom: 8px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .verification-metric dd {
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        .verification-result {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px solid #e8edf4;
+            line-height: 1.6;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        .view-button {
+            background: #315bba;
+        }
+
+        .download-button {
+            background: #16834a;
+        }
+
+        .download-button:hover {
+            background: #106638;
+        }
+
+        /* Delete button design */
+        .delete-button {
+            background: #d94343;
+        }
+
+        .delete-button:hover {
+            background: #ae2929;
+        }
+
+        .logout-button {
+            margin-top: 20px;
+            background: #d94343;
+        }
+
+        .logout-button:hover {
+            background: #ae2929;
+        }
+
+        .profile-detail {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .profile-detail strong {
+            display: inline-block;
+            width: 130px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .search-input,
+        .category-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+            margin: 10px 0 15px;
+        }
+
+        .upload-form label {
+            font-weight: bold;
+        }
+
+        .upload-form input[type="file"] {
+            margin-top: 10px;
+        }
+
+        #uploadMessage {
+            margin-top: 15px;
+        }
+
+        @media (max-width: 750px) {
+            .sidebar {
+                width: 180px;
+            }
+
+            .main {
+                margin-left: 180px;
+                padding: 18px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .verification-metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 145px;
+                padding: 18px 10px;
+            }
+
+            .logo {
+                font-size: 19px;
+            }
+
+            .main {
+                margin-left: 145px;
+                padding: 12px;
+            }
+
+            .nav-item {
+                font-size: 13px;
+                padding: 11px 8px;
+            }
+
+            .audit-integrity-header {
+                flex-direction: column;
+            }
+
+            .audit-integrity-header button {
+                width: 100%;
+            }
+
+            .verification-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside class="sidebar">
+
+        <div class="logo">🔐 TrustVault</div>
+
+        <div class="nav-item active" data-section="dashboard">
+            🏠 Dashboard
+        </div>
+
+        <div class="nav-item" data-section="uploadDocument">
+            ⬆️ Upload Document
+        </div>
+
+        <div class="nav-item" data-section="myDocuments">
+            📁 My Documents
+        </div>
+
+        <div class="nav-item" data-section="sharedDocuments">
+            🤝 Shared Documents
+        </div>
+
+        <div class="nav-item" data-section="settings">
+            ⚙️ Settings
+        </div>
+
+        <div class="nav-item" data-section="adminMonitor" hidden>
+            🛡 Admin Monitor
+        </div>
+
+        <div class="nav-item" data-section="auditIntegrity" hidden>
+            ✓ Audit Integrity
+        </div>
+
+    </aside>
+
+    <main class="main">
+
+        <div class="topbar">
+
+            <h1 id="pageTitle">Dashboard</h1>
+
+            <div class="user-info" id="userInfo">
+                👤 Loading user...
+            </div>
+
+        </div>
+
+        <!-- Dashboard Section -->
+
+        <section id="dashboard" class="section active">
+
+            <div class="welcome">
+                <h2>Welcome to TrustVault!</h2>
+                <p>Secure document sharing and management.</p>
+            </div>
+
+            <div class="stats">
+
+                <div class="card">
+                    <h3>Total Documents</h3>
+                    <h2 id="totalDocuments">--</h2>
+                </div>
+
+                <div class="card">
+                    <h3>Shared Documents</h3>
+                    <h2 id="sharedDocumentsCount">--</h2>
+                </div>
+
+                <div class="card">
+                    <h3>Recent Activity</h3>
+                    <h2>--</h2>
+                </div>
+
+            </div>
+
+            <div class="content-card">
+                <h2>Welcome to Your Dashboard</h2>
+                <p>
+                    Manage your documents securely using the sidebar.
+                    Upload documents, view and download your files,
+                    and manage shared documents.
+                </p>
+            </div>
+
+        </section>
+
+        <!-- Upload Document Section -->
+
+        <section id="uploadDocument" class="section">
+
+            <div class="documents">
+
+                <h2>⬆️ Upload Document</h2>
+
+                <p style="color:#718096; margin-bottom:20px;">
+                    Select a document and its category to upload securely.
+                </p>
+
+                <form id="uploadForm" class="upload-form">
+
+                    <label>Select Document:</label>
+                    <br><br>
+
+                    <input
+                        type="file"
+                        id="documentFile"
+                        accept=".pdf,.jpg,.jpeg,.png,.txt"
+                        required
+                    >
+
+                    <br><br>
+
+                    <label>Document Category:</label>
+                    <br><br>
+
+                    <input
+                        type="text"
+                        id="documentCategory"
+                        class="category-input"
+                        placeholder="Example: College Documents"
+                        required
+                    >
+
+                    <button type="submit">Upload Document</button>
+
+                    <p id="uploadMessage"></p>
+
+                </form>
+
+            </div>
+
+        </section>
+
+        <!-- My Documents Section -->
+
+        <section id="myDocuments" class="section">
+
+            <div class="documents">
+
+                <h2>📁 My Documents</h2>
+
+                <p style="color:#718096;">
+                    Search, view, download and delete your uploaded documents.
+                </p>
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    class="search-input"
+                    placeholder="Search by document name, owner or category..."
+                >
+                <label for="ownerDateFrom">Uploaded from:</label>
+                <input type="date" id="ownerDateFrom" class="search-input">
+                <label for="ownerDateTo">Uploaded to:</label>
+                <input type="date" id="ownerDateTo" class="search-input">
+
+                <div id="documentsList" class="empty">
+                    Loading documents...
+                </div>
+
+                <h2>Recycle Bin</h2>
+                <p style="color:#718096;">
+                    Deleted documents cannot be accessed or shared. Restore a
+                    file or permanently remove it from active private storage.
+                    Purging does not erase backups or guarantee forensic erasure.
+                </p>
+                <div id="recycleBinList" class="empty">
+                    Loading Recycle Bin...
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Shared Documents Section -->
+
+        <section id="sharedDocuments" class="section">
+
+            <div class="content-card">
+
+                <h2>🤝 Shared Documents</h2>
+
+                <input
+                    type="text"
+                    id="sharedSearchInput"
+                    class="search-input"
+                    placeholder="Search by document name, owner or category..."
+                >
+                <label for="sharedDateFrom">Uploaded from:</label>
+                <input type="date" id="sharedDateFrom" class="search-input">
+                <label for="sharedDateTo">Uploaded to:</label>
+                <input type="date" id="sharedDateTo" class="search-input">
+
+                <div id="sharedDocumentsList" class="empty">
+                    Loading shared documents...
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Settings Section -->
+
+        <section id="settings" class="section">
+
+            <div class="content-card">
+
+                <h2>⚙️ Account Settings</h2>
+
+                <div class="profile-detail">
+                    <strong>Full Name:</strong>
+                    <span id="profileName">Loading...</span>
+                </div>
+
+                <div class="profile-detail">
+                    <strong>Email:</strong>
+                    <span id="profileEmail">Loading...</span>
+                </div>
+
+                <div class="profile-detail">
+                    <strong>Role:</strong>
+                    <span id="profileRole">Loading...</span>
+                </div>
+
+                <div class="profile-detail">
+                    <strong>Account:</strong>
+                    <span>Logged in</span>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section id="adminMonitor" class="section" hidden>
+            <div class="content-card">
+                <h2>System Monitoring</h2>
+                <p id="adminSummary">Loading administrator overview...</p>
+                <button id="openAuditIntegrityButton" type="button">
+                    View audit integrity
+                </button>
+            </div>
+
+            <div class="content-card" style="margin-top:20px;">
+                <h2>Users</h2>
+                <div id="adminUsersList">Loading users...</div>
+            </div>
+
+            <div class="content-card" style="margin-top:20px;">
+                <h2>Recent System Activity</h2>
+                <div id="adminActivityList">Loading audit events...</div>
+            </div>
+        </section>
+
+        <section id="auditIntegrity" class="section" hidden>
+            <div class="content-card">
+                <div class="audit-integrity-header">
+                    <div>
+                        <h2>Audit Integrity</h2>
+                        <p>Review the latest verification of the audit record chain.</p>
+                    </div>
+                    <button id="verifyAuditButton" type="button">
+                        Run verification
+                    </button>
+                </div>
+                <div id="auditVerificationDetail" aria-live="polite">
+                    Loading verification details...
+                </div>
+            </div>
+        </section>
+
+        <button id="logoutBtn" class="logout-button">
+            Logout
+        </button>
+
+    </main>
+
+    <script>
+
+        const API_URL = window.location.port === "8000"
+            ? window.location.origin
+            : "http://127.0.0.1:8000";
+
+        async function readApiResponse(response) {
+            const body = await response.text();
+            if (!body) {
+                return {};
+            }
+            try {
+                return JSON.parse(body);
+            } catch {
+                return {detail: body};
+            }
+        }
+
+        const token = localStorage.getItem("access_token");
+
+        const userInfo = document.getElementById("userInfo");
+        const logoutBtn = document.getElementById("logoutBtn");
+
+        const uploadForm = document.getElementById("uploadForm");
+        const documentFile = document.getElementById("documentFile");
+        const documentCategory = document.getElementById("documentCategory");
+        const uploadMessage = document.getElementById("uploadMessage");
+
+        const documentsList = document.getElementById("documentsList");
+        const recycleBinList = document.getElementById("recycleBinList");
+        const searchInput = document.getElementById("searchInput");
+        const ownerDateFrom = document.getElementById("ownerDateFrom");
+        const ownerDateTo = document.getElementById("ownerDateTo");
+        const sharedDocumentsList =
+            document.getElementById("sharedDocumentsList");
+        const sharedSearchInput =
+            document.getElementById("sharedSearchInput");
+        const sharedDateFrom = document.getElementById("sharedDateFrom");
+        const sharedDateTo = document.getElementById("sharedDateTo");
+        const navItems = document.querySelectorAll(".nav-item");
+        const sections = document.querySelectorAll(".section");
+        const pageTitle = document.getElementById("pageTitle");
+
+        let allDocuments = [];
+        let allSharedDocuments = [];
+        let viewers = [];
+        let currentUser = null;
+
+        // Check login status
+
+        if (!token) {
+
+            window.location.href = "index.html";
+
+        } else {
+
+            initializeDashboard();
+
+        }
+
+        // Sidebar navigation
+
+        navItems.forEach(function(item) {
+
+            item.addEventListener("click", function() {
+
+                const sectionId = item.dataset.section;
+
+                navItems.forEach(function(nav) {
+                    nav.classList.remove("active");
+                });
+
+                item.classList.add("active");
+
+                sections.forEach(function(section) {
+                    section.classList.remove("active");
+                });
+
+                document.getElementById(sectionId).classList.add("active");
+
+                pageTitle.textContent =
+                    item.textContent.trim().replace(/^[^\w]+/, "");
+
+                if (sectionId === "auditIntegrity") {
+                    loadLastAuditVerification();
+                }
+            });
+
+        });
+
+        document.getElementById("openAuditIntegrityButton").addEventListener(
+            "click",
+            function() {
+                document.querySelector(
+                    '.nav-item[data-section="auditIntegrity"]'
+                ).click();
+            }
+        );
+
+        async function initializeDashboard() {
+            const user = await loadUserDetails();
+
+            if (!user) {
+                return;
+            }
+
+            configureDashboard(user.role);
+
+            if (user.role === "owner") {
+                await Promise.all([
+                    loadDocuments(),
+                    loadViewers(),
+                    loadRecycleBin()
+                ]);
+            } else if (user.role === "viewer") {
+                await loadSharedDocuments();
+            } else if (user.role === "admin") {
+                await loadAdminDashboard();
+            }
+        }
+
+        function configureDashboard(role) {
+            const isOwner = role === "owner";
+            const isViewer = role === "viewer";
+            const isAdmin = role === "admin";
+
+            navItems.forEach(function(item) {
+                const sectionId = item.dataset.section;
+                item.hidden = (
+                    (sectionId === "uploadDocument" ||
+                        sectionId === "myDocuments") && !isOwner
+                ) || (
+                    sectionId === "sharedDocuments" && !isViewer
+                ) || (
+                    (sectionId === "adminMonitor" ||
+                        sectionId === "auditIntegrity") && !isAdmin
+                );
+            });
+
+            sections.forEach(function(section) {
+                section.hidden = (
+                    (section.id === "uploadDocument" ||
+                        section.id === "myDocuments") && !isOwner
+                ) || (
+                    section.id === "sharedDocuments" && !isViewer
+                ) || (
+                    (section.id === "adminMonitor" ||
+                        section.id === "auditIntegrity") && !isAdmin
+                );
+            });
+
+            const initialSection = isViewer
+                ? "sharedDocuments"
+                : isAdmin
+                    ? "adminMonitor"
+                    : "dashboard";
+
+            navItems.forEach(function(item) {
+                item.classList.toggle(
+                    "active",
+                    item.dataset.section === initialSection
+                );
+            });
+
+            sections.forEach(function(section) {
+                section.classList.toggle(
+                    "active",
+                    section.id === initialSection
+                );
+            });
+
+            const initialNavItem = document.querySelector(
+                '.nav-item[data-section="' + initialSection + '"]'
+            );
+            pageTitle.textContent = initialNavItem.textContent.trim()
+                .replace(/^[^\w]+/, "");
+        }
+
+        // Get user details from backend
+
+        async function loadUserDetails() {
+
+            try {
+
+                const response = await fetch(
+                    API_URL + "/me",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (response.status === 401) {
+
+                    localStorage.removeItem("access_token");
+                    window.location.href = "index.html";
+                    return null;
+
+                }
+
+                if (!response.ok) {
+
+                    userInfo.textContent =
+                        "Unable to load user details (" +
+                        response.status + ")";
+
+                    return null;
+
+                }
+
+                const data = await response.json();
+
+                currentUser = data;
+
+                userInfo.textContent =
+                    "👤 " + data.full_name +
+                    " | " + data.role.toUpperCase();
+
+                document.getElementById("profileName").textContent =
+                    data.full_name || "Not available";
+
+                document.getElementById("profileEmail").textContent =
+                    data.email || "Not available";
+
+                document.getElementById("profileRole").textContent =
+                    data.role ? data.role.toUpperCase() : "Not available";
+
+                // Re-render after role information is loaded
+                renderDocuments(allDocuments);
+
+                return data;
+
+            } catch (error) {
+
+                userInfo.textContent = "Server connection failed";
+
+                console.error("Connection Error:", error);
+
+                return null;
+
+            }
+
+        }
+
+        async function loadViewers() {
+            try {
+                const response = await fetch(
+                    API_URL + "/users/viewers",
+                    {
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem("access_token");
+                        window.location.href = "index.html";
+                        return;
+                    }
+
+                    console.error(
+                        "Unable to load viewer accounts:",
+                        response.status,
+                        await response.text()
+                    );
+                    return;
+                }
+
+                const data = await response.json();
+                viewers = data.viewers || [];
+                renderDocuments(allDocuments);
+            } catch (error) {
+                console.error("Viewer accounts error:", error);
+            }
+        }
+
+        async function loadAdminDashboard() {
+            const summary = document.getElementById("adminSummary");
+            try {
+                const response = await fetch(API_URL + "/admin/dashboard", {
+                    headers: {"Authorization": "Bearer " + token}
+                });
+                if (!response.ok) {
+                    summary.textContent =
+                        "Unable to load administrator overview.";
+                    return;
+                }
+                const data = await response.json();
+                summary.textContent =
+                    data.total_users + " users | " +
+                    data.total_documents + " documents";
+            } catch (error) {
+                summary.textContent = "Server connection failed.";
+                console.error("Admin overview error:", error);
+            }
+
+            await Promise.all([
+                loadAdminUsers(),
+                loadAdminActivity(),
+                loadLastAuditVerification()
+            ]);
+        }
+
+        async function loadAdminUsers() {
+            const list = document.getElementById("adminUsersList");
+            list.textContent = "Loading users...";
+            try {
+                const response = await fetch(API_URL + "/admin/users", {
+                    headers: {"Authorization": "Bearer " + token}
+                });
+                if (!response.ok) {
+                    list.textContent = "Unable to load users.";
+                    return;
+                }
+                const data = await response.json();
+                list.replaceChildren();
+
+                (data.users || []).forEach(function(user) {
+                    const row = document.createElement("div");
+                    row.className = "admin-user";
+
+                    const identity = document.createElement("span");
+                    identity.textContent =
+                        user.full_name + " (" + user.email + ")";
+
+                    const roleSelect = document.createElement("select");
+                    ["owner", "viewer", "admin"].forEach(function(role) {
+                        const option = document.createElement("option");
+                        option.value = role;
+                        option.textContent =
+                            role.charAt(0).toUpperCase() + role.slice(1);
+                        option.selected = user.role === role;
+                        roleSelect.appendChild(option);
+                    });
+
+                    const status = document.createElement("span");
+                    status.textContent =
+                        user.is_active ? "Active" : "Suspended";
+
+                    const updateButton = document.createElement("button");
+                    updateButton.type = "button";
+                    updateButton.textContent = "Save role";
+
+                    const statusButton = document.createElement("button");
+                    statusButton.type = "button";
+                    statusButton.textContent =
+                        user.is_active ? "Suspend" : "Reactivate";
+
+                    const message = document.createElement("span");
+                    message.setAttribute("role", "status");
+
+                    const isCurrentUser =
+                        currentUser && user.user_id === currentUser.user_id;
+                    updateButton.disabled = isCurrentUser;
+                    statusButton.disabled = isCurrentUser;
+
+                    updateButton.addEventListener("click", function() {
+                        updateAdminUser(user, {
+                            role: roleSelect.value
+                        }, message);
+                    });
+                    statusButton.addEventListener("click", function() {
+                        updateAdminUser(user, {
+                            is_active: !user.is_active
+                        }, message);
+                    });
+
+                    row.append(
+                        identity,
+                        roleSelect,
+                        status,
+                        updateButton,
+                        statusButton,
+                        message
+                    );
+                    list.appendChild(row);
+                });
+
+                if (!data.users || data.users.length === 0) {
+                    list.textContent = "No user accounts found.";
+                }
+            } catch (error) {
+                list.textContent = "Server connection failed.";
+                console.error("Admin user list error:", error);
+            }
+        }
+
+        async function updateAdminUser(user, changes, message) {
+            message.textContent = "Saving...";
+            try {
+                const response = await fetch(
+                    API_URL + "/admin/users/" + user.user_id,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(changes)
+                    }
+                );
+                const data = await response.json();
+                if (!response.ok) {
+                    message.textContent =
+                        data.detail || "Unable to update account.";
+                    return;
+                }
+                await loadAdminUsers();
+            } catch (error) {
+                message.textContent = "Server connection failed.";
+                console.error("Admin user update error:", error);
+            }
+        }
+
+        async function loadAdminActivity() {
+            const list = document.getElementById("adminActivityList");
+            list.textContent = "Loading audit events...";
+            try {
+                const response = await fetch(
+                    API_URL + "/admin/audit-logs",
+                    {headers: {"Authorization": "Bearer " + token}}
+                );
+                if (!response.ok) {
+                    list.textContent = "Unable to load audit events.";
+                    return;
+                }
+                const data = await response.json();
+                list.replaceChildren();
+                const logs = (data.audit_logs || []).slice().sort(
+                    function(first, second) {
+                        const firstTime =
+                            new Date(first.created_at).getTime() || 0;
+                        const secondTime =
+                            new Date(second.created_at).getTime() || 0;
+                        return secondTime - firstTime ||
+                            Number(second.id) - Number(first.id);
+                    }
+                );
+                if (logs.length === 0) {
+                    list.textContent = "No audit events recorded yet.";
+                    return;
+                }
+
+                const tableWrap = document.createElement("div");
+                tableWrap.className = "admin-activity-table-wrap";
+                const table = document.createElement("table");
+                table.className = "admin-activity-table";
+                const caption = document.createElement("caption");
+                caption.textContent = "Most recent audit events first";
+                table.appendChild(caption);
+
+                const headers = [
+                    "Activity / Action",
+                    "User Name",
+                    "User Role",
+                    "Date and Time",
+                    "Status"
+                ];
+                const tableHead = document.createElement("thead");
+                const headerRow = document.createElement("tr");
+                headers.forEach(function(label) {
+                    const cell = document.createElement("th");
+                    cell.scope = "col";
+                    cell.textContent = label;
+                    headerRow.appendChild(cell);
+                });
+                tableHead.appendChild(headerRow);
+                table.appendChild(tableHead);
+
+                const tableBody = document.createElement("tbody");
+                logs.forEach(function(log) {
+                    const details = log.details &&
+                        typeof log.details === "object"
+                        ? log.details
+                        : {};
+                    const statusCode = Number(details.status_code);
+                    const outcome = String(details.outcome || "").toLowerCase();
+                    const status = outcome === "denied" ||
+                        outcome === "restricted" ||
+                        statusCode === 401 ||
+                        statusCode === 403
+                        ? "restricted"
+                        : outcome === "failure" ||
+                            outcome === "failed" ||
+                            statusCode >= 400
+                            ? "failed"
+                            : "success";
+                    const row = document.createElement("tr");
+
+                    const actionCell = document.createElement("td");
+                    const actionIcon = document.createElement("span");
+                    actionIcon.setAttribute("aria-hidden", "true");
+                    actionIcon.textContent = /login/i.test(log.action)
+                        ? "🔑 "
+                        : /user/i.test(log.action)
+                            ? "👤 "
+                            : /share|permission|access/i.test(log.action)
+                                ? "🔒 "
+                                : "📄 ";
+                    const actionLabel = document.createElement("span");
+                    actionLabel.className = "activity-action";
+                    actionLabel.textContent = String(
+                        log.action || "Unknown action"
+                    ).replaceAll("_", " ").toLowerCase().replace(
+                        /\b\w/g,
+                        function(character) {
+                            return character.toUpperCase();
+                        }
+                    );
+                    actionCell.append(actionIcon, actionLabel);
+
+                    const userCell = document.createElement("td");
+                    const userName = document.createElement("span");
+                    userName.className = "activity-user";
+                    userName.textContent =
+                        log.actor_name || (log.actor_id
+                            ? "User " + log.actor_id
+                            : "Unauthenticated user");
+                    userCell.appendChild(userName);
+
+                    const roleCell = document.createElement("td");
+                    roleCell.textContent = log.actor_role
+                        ? String(log.actor_role).toUpperCase()
+                        : "—";
+
+                    const timestampCell = document.createElement("td");
+                    const timestamp = new Date(log.created_at);
+                    timestampCell.textContent =
+                        Number.isNaN(timestamp.getTime())
+                            ? log.created_at || "Unavailable"
+                            : timestamp.toLocaleString();
+
+                    const statusCell = document.createElement("td");
+                    const statusBadge = document.createElement("span");
+                    statusBadge.className = "activity-status " + status;
+                    statusBadge.textContent = status === "success"
+                        ? "Successful"
+                        : status === "failed"
+                            ? "Failed"
+                            : "Restricted";
+                    statusCell.appendChild(statusBadge);
+                    row.append(
+                        actionCell,
+                        userCell,
+                        roleCell,
+                        timestampCell,
+                        statusCell
+                    );
+                    tableBody.appendChild(row);
+                });
+                table.appendChild(tableBody);
+                tableWrap.appendChild(table);
+                list.appendChild(tableWrap);
+            } catch (error) {
+                list.textContent = "Server connection failed.";
+                console.error("Admin audit activity error:", error);
+            }
+        }
+
+        function formatVerificationTime(value) {
+            const timestamp = new Date(value);
+            if (Number.isNaN(timestamp.getTime())) {
+                return {date: value || "Unavailable", time: "Unavailable"};
+            }
+            return {
+                date: timestamp.toLocaleDateString(),
+                time: timestamp.toLocaleTimeString()
+            };
+        }
+
+        function renderAuditVerification(verification) {
+            const detail = document.getElementById(
+                "auditVerificationDetail"
+            );
+            detail.replaceChildren();
+            if (!verification) {
+                const emptyState = document.createElement("p");
+                emptyState.className = "verification-message pending";
+                emptyState.textContent =
+                    "No verification has been performed yet.";
+                detail.appendChild(emptyState);
+                return;
+            }
+
+            const isValid = verification.valid === true;
+            const message = document.createElement("p");
+            message.className = "verification-message " +
+                (isValid ? "success" : "failed");
+            if (isValid) {
+                message.textContent = verification.checked_records === 0
+                    ? "Verification completed successfully. No audit records were present to check."
+                    : "All " + verification.checked_records +
+                        " audit records passed integrity verification.";
+            } else {
+                message.textContent = "Verification failed. " +
+                    (verification.reason || "The audit chain could not be verified.");
+                if (verification.affected_record_id !== null &&
+                    verification.affected_record_id !== undefined) {
+                    message.textContent +=
+                        " Affected record ID: " +
+                        verification.affected_record_id + ".";
+                }
+            }
+            detail.appendChild(message);
+
+            if (!isValid) {
+                const explanation = document.createElement("p");
+                explanation.className =
+                    "verification-message caution";
+                explanation.textContent =
+                    "The affected record hashes do not match the currently " +
+                    "configured audit signing key. A key/configuration change " +
+                    "or modified record data can cause this; the verifier " +
+                    "cannot safely distinguish between them. Preserve the " +
+                    "audit data and anchor unchanged. If a historical audit " +
+                    "key is available in protected backups, use it to verify " +
+                    "the original chain before considering any recovery.";
+                detail.appendChild(explanation);
+            }
+
+            const formattedTime = formatVerificationTime(
+                verification.verified_at
+            );
+            const analysis = verification.analysis;
+            const metrics = [
+                ["Last Verification Date", formattedTime.date],
+                ["Last Verification Time", formattedTime.time],
+                ["Verification Status", isValid ? "Verified" : "Failed"],
+                ["Total Audit Records Checked", verification.checked_records],
+                ["Valid Records", verification.valid_records],
+                ["Tampered or Invalid Records", verification.invalid_records],
+                ["First Affected Record ID",
+                    verification.affected_record_id ?? "—"]
+            ];
+            const metricGrid = document.createElement("dl");
+            metricGrid.className = "verification-metrics";
+            metrics.forEach(function(metric) {
+                const item = document.createElement("div");
+                item.className = "verification-metric";
+                const label = document.createElement("dt");
+                label.textContent = metric[0];
+                const value = document.createElement("dd");
+                value.textContent = String(metric[1] ?? 0);
+                item.append(label, value);
+                metricGrid.appendChild(item);
+            });
+            detail.appendChild(metricGrid);
+
+            const analysisView = document.createElement("div");
+            analysisView.className = "verification-analysis";
+            if (analysis) {
+                if (verification.invalid_records > 0) {
+                    const invalidBlock = document.createElement("section");
+                    invalidBlock.className =
+                        "verification-analysis-block invalid";
+                    const invalidHeading = document.createElement("h3");
+                    invalidHeading.textContent =
+                        "Existing records still failing verification";
+                    const invalidDescription =
+                        document.createElement("p");
+                    const ranges = analysis.invalid_record_ranges || [];
+                    const rangeText = ranges.map(function(range) {
+                        return range.first_id === range.last_id
+                            ? String(range.first_id)
+                            : range.first_id + "–" + range.last_id;
+                    }).join(", ");
+                    invalidDescription.textContent = rangeText
+                        ? verification.invalid_records + " record(s) remain " +
+                            "invalid (IDs " + rangeText + "). Overall status " +
+                            "remains FAILED."
+                        : verification.invalid_records +
+                            " record(s) remain invalid. Overall status remains FAILED.";
+                    invalidBlock.append(invalidHeading, invalidDescription);
+                    analysisView.appendChild(invalidBlock);
+                }
+
+                const currentKey = analysis.current_key_valid_suffix || {};
+                const currentKeyBlock = document.createElement("section");
+                currentKeyBlock.className = currentKey.count > 0 &&
+                    analysis.dedicated_key_configured
+                    ? "verification-analysis-block current-key"
+                    : "verification-analysis-block note";
+                const currentKeyHeading = document.createElement("h3");
+                currentKeyHeading.textContent =
+                    "Newest records and the current signing key";
+                const currentKeyDescription =
+                    document.createElement("p");
+                if (currentKey.count > 0 &&
+                    analysis.dedicated_key_configured) {
+                    const ids = currentKey.first_id === currentKey.last_id
+                        ? "ID " + currentKey.first_id
+                        : "IDs " + currentKey.first_id + "–" +
+                            currentKey.last_id;
+                    currentKeyDescription.textContent =
+                        "The newest " + currentKey.count + " record(s) (" +
+                        ids + ") validate with the dedicated audit signing " +
+                        "key and their previous-record links. This does not " +
+                        "clear the FAILED status while older records remain invalid.";
+                } else if (currentKey.count > 0) {
+                    currentKeyDescription.textContent =
+                        "The newest " + currentKey.count +
+                        " record(s) validate with the active key, but a " +
+                        "dedicated audit signing key is not configured.";
+                } else {
+                    currentKeyDescription.textContent =
+                        "No newest records currently validate with the " +
+                        "dedicated audit signing key.";
+                }
+                currentKeyBlock.append(
+                    currentKeyHeading,
+                    currentKeyDescription
+                );
+                analysisView.appendChild(currentKeyBlock);
+            } else {
+                const notAvailable = document.createElement("p");
+                notAvailable.className =
+                    "verification-analysis-block note";
+                notAvailable.textContent =
+                    "This saved verification predates the detailed record " +
+                    "breakdown. Run verification again to save invalid record " +
+                    "ranges and current-key validation details.";
+                analysisView.appendChild(notAvailable);
+            }
+            detail.appendChild(analysisView);
+
+            const result = document.createElement("p");
+            result.className = "verification-result";
+            result.textContent = "Verification Result: " +
+                (isValid
+                    ? "The audit record chain and trusted anchor are valid."
+                    : (verification.reason || "Integrity verification failed."));
+            detail.appendChild(result);
+        }
+
+        async function loadLastAuditVerification() {
+            const detail = document.getElementById(
+                "auditVerificationDetail"
+            );
+            detail.textContent = "Loading verification details...";
+            try {
+                const response = await fetch(
+                    API_URL + "/admin/audit-logs/verification",
+                    {headers: {"Authorization": "Bearer " + token}}
+                );
+                const data = await readApiResponse(response);
+                if (!response.ok) {
+                    throw new Error(
+                        "Unable to load verification (" + response.status +
+                        "): " +
+                        (data.detail || "The server returned an error.")
+                    );
+                }
+                renderAuditVerification(data.verification);
+            } catch (error) {
+                detail.textContent = error.message || "Server connection failed.";
+                console.error("Audit verification history error:", error);
+            }
+        }
+
+        document.getElementById("verifyAuditButton").addEventListener(
+            "click",
+            async function() {
+                const button = document.getElementById("verifyAuditButton");
+                button.disabled = true;
+                button.textContent = "Verifying...";
+                try {
+                    const response = await fetch(
+                        API_URL + "/admin/audit-logs/verify",
+                        {headers: {"Authorization": "Bearer " + token}}
+                    );
+                    const result = await readApiResponse(response);
+                    if (!response.ok) {
+                        throw new Error(
+                            "Unable to verify audit integrity (" +
+                            response.status + "): " +
+                            (result.detail || "The server returned an error.")
+                        );
+                    }
+                    renderAuditVerification(result);
+                } catch (error) {
+                    const detail = document.getElementById(
+                        "auditVerificationDetail"
+                    );
+                    detail.textContent = error.message ||
+                        "Server connection failed.";
+                    console.error("Audit verification error:", error);
+                } finally {
+                    button.disabled = false;
+                    button.textContent = "Run verification";
+                }
+            }
+        );
+
+        // Upload document to backend
+
+        uploadForm.addEventListener("submit", async function(event) {
+
+            event.preventDefault();
+
+            const file = documentFile.files[0];
+            const category = documentCategory.value.trim();
+
+            if (!file || !category) {
+
+                uploadMessage.textContent =
+                    "Please select a file and enter a category.";
+
+                uploadMessage.style.color = "red";
+                return;
+
+            }
+
+            const formData = new FormData();
+
+            formData.append("file", file);
+            formData.append("category", category);
+
+            uploadMessage.textContent = "Uploading...";
+            uploadMessage.style.color = "black";
+
+            try {
+
+                const response = await fetch(
+                    API_URL + "/documents/upload",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        },
+                        body: formData
+                    }
+                );
+
+                const data = await response.json();
+
+                if (response.status === 401) {
+
+                    localStorage.removeItem("access_token");
+                    window.location.href = "index.html";
+                    return;
+
+                }
+
+                if (response.ok) {
+
+                    uploadMessage.textContent =
+                        "Document uploaded successfully!";
+
+                    uploadMessage.style.color = "green";
+
+                    uploadForm.reset();
+
+                    await loadDocuments();
+
+                } else {
+
+                    uploadMessage.textContent =
+                        data.detail || "Upload failed.";
+
+                    uploadMessage.style.color = "red";
+
+                }
+
+            } catch (error) {
+
+                uploadMessage.textContent =
+                    "Server connection failed.";
+
+                uploadMessage.style.color = "red";
+
+                console.error("Upload error:", error);
+
+            }
+
+        });
+
+        // Load documents belonging to the logged-in Owner
+
+        async function loadDocuments() {
+            documentsList.textContent = "Loading documents...";
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/mine",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+                if (response.status === 401) {
+                    localStorage.removeItem("access_token");
+                    window.location.href = "index.html";
+                    return;
+                }
+                if (!response.ok) {
+                    documentsList.textContent =
+                        "Unable to load documents (" + response.status + ")";
+                    return;
+                }
+                const data = await response.json();
+                allDocuments = data.documents || [];
+                document.getElementById("totalDocuments").textContent =
+                    data.total_documents ?? allDocuments.length;
+                renderDocuments(allDocuments);
+            } catch (error) {
+                documentsList.textContent = "Server connection failed.";
+                console.error("Documents error:", error);
+            }
+        }
+
+        async function loadRecycleBin() {
+            recycleBinList.textContent = "Loading Recycle Bin...";
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/recycle-bin",
+                    {
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+                if (response.status === 401) {
+                    localStorage.removeItem("access_token");
+                    window.location.href = "index.html";
+                    return;
+                }
+                if (!response.ok) {
+                    recycleBinList.textContent =
+                        "Unable to load Recycle Bin (" + response.status + ")";
+                    return;
+                }
+
+                const data = await response.json();
+                const documents = data.documents || [];
+                recycleBinList.innerHTML = "";
+                if (documents.length === 0) {
+                    recycleBinList.textContent = "Recycle Bin is empty.";
+                    recycleBinList.className = "empty";
+                    return;
+                }
+
+                recycleBinList.className = "";
+                documents.forEach(function(doc) {
+                    const card = document.createElement("div");
+                    card.className = "document-card";
+                    const name = document.createElement("h3");
+                    name.textContent = "Document: " + doc.filename;
+                    const deleted = document.createElement("p");
+                    deleted.textContent =
+                        "Deleted: " + formatUploadDate(doc.deleted_at);
+                    card.append(name, deleted);
+
+                    if (doc.purged_at) {
+                        const status = document.createElement("p");
+                        status.textContent =
+                            "File removed from active storage: " +
+                            formatUploadDate(doc.purged_at) +
+                            ". Metadata and audit history are retained.";
+                        card.appendChild(status);
+                    } else {
+                        const restoreButton = document.createElement("button");
+                        restoreButton.type = "button";
+                        restoreButton.textContent = "Restore";
+                        restoreButton.addEventListener("click", function() {
+                            restoreDocument(doc.document_id);
+                        });
+                        const purgeButton = document.createElement("button");
+                        purgeButton.type = "button";
+                        purgeButton.className = "delete-button";
+                        purgeButton.textContent =
+                            "Permanently remove stored file";
+                        purgeButton.addEventListener("click", function() {
+                            purgeDocument(doc.document_id, doc.filename);
+                        });
+                        card.append(restoreButton, purgeButton);
+                    }
+                    recycleBinList.appendChild(card);
+                });
+            } catch (error) {
+                recycleBinList.textContent =
+                    "Server connection failed while loading Recycle Bin.";
+                console.error("Recycle Bin error:", error);
+            }
+        }
+
+        async function restoreDocument(documentId) {
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/" + documentId + "/restore",
+                    {
+                        method: "POST",
+                        headers: {"Authorization": "Bearer " + token}
+                    }
+                );
+                if (!response.ok) {
+                    handleDocumentError(response.status);
+                    return;
+                }
+                await Promise.all([loadDocuments(), loadRecycleBin()]);
+            } catch (error) {
+                alert("Server connection failed while restoring the document.");
+                console.error("Restore error:", error);
+            }
+        }
+
+        async function purgeDocument(documentId, filename) {
+            if (!confirm(
+                "Remove " + filename +
+                " from active private storage? This cannot be undone. " +
+                "Backups or forensic copies may still exist."
+            )) {
+                return;
+            }
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/" + documentId + "/purge",
+                    {
+                        method: "POST",
+                        headers: {"Authorization": "Bearer " + token}
+                    }
+                );
+                if (!response.ok) {
+                    handleDocumentError(response.status);
+                    return;
+                }
+                await loadRecycleBin();
+            } catch (error) {
+                alert("Server connection failed while removing the file.");
+                console.error("Purge error:", error);
+            }
+        }
+
+        // Display document cards
+
+        function renderDocuments(documents) {
+
+            documentsList.innerHTML = "";
+
+            if (documents.length === 0) {
+
+                documentsList.textContent =
+                    allDocuments.length === 0
+                    ? "No documents uploaded yet."
+                    : "No matching documents found.";
+
+                documentsList.className = "empty";
+                return;
+
+            }
+
+            documentsList.className = "";
+
+            documents.forEach(function(doc) {
+
+                const documentCard = document.createElement("div");
+
+                documentCard.className = "document-card";
+
+                const name = document.createElement("h3");
+
+                name.textContent = "📄 " + doc.filename;
+
+                const category = document.createElement("p");
+
+                category.textContent =
+                    "Category: " + (doc.category || "Not specified");
+
+                const owner = document.createElement("p");
+                owner.textContent =
+                    "Owner: " + (doc.owner_name || "Unknown") +
+                    (doc.owner_email ? " (" + doc.owner_email + ")" : "");
+
+                const uploaded = document.createElement("p");
+                uploaded.textContent =
+                    "Uploaded: " + formatUploadDate(doc.created_at);
+
+                const size = document.createElement("p");
+
+                size.textContent =
+                    "Size: " +
+                    (doc.file_size / 1024).toFixed(2) +
+                    " KB";
+
+                const actions = document.createElement("div");
+                actions.className = "document-actions";
+
+                const viewButton = document.createElement("button");
+
+                viewButton.textContent = "👁 View";
+                viewButton.className = "view-button";
+                viewButton.type = "button";
+
+                viewButton.addEventListener("click", function() {
+                    openDocument(doc.document_id);
+                });
+
+                actions.appendChild(viewButton);
+
+                const downloadButton = createDownloadButton(doc);
+                actions.appendChild(downloadButton);
+
+                // Delete button is displayed only for Owners
+
+                if (
+                    currentUser &&
+                    currentUser.role &&
+                    currentUser.role.toLowerCase() === "owner"
+                ) {
+
+                    const deleteButton = document.createElement("button");
+
+                    deleteButton.textContent = "🗑 Delete";
+                    deleteButton.className = "delete-button";
+
+                    deleteButton.addEventListener("click", function() {
+
+                        deleteDocument(
+                            doc.document_id,
+                            doc.filename
+                        );
+
+                    });
+
+                    actions.appendChild(deleteButton);
+
+                }
+
+                if (currentUser && currentUser.role === "owner") {
+                    actions.appendChild(createEditButton(doc));
+                }
+
+                documentCard.appendChild(name);
+                documentCard.appendChild(category);
+                documentCard.appendChild(owner);
+                documentCard.appendChild(uploaded);
+                documentCard.appendChild(size);
+                documentCard.appendChild(actions);
+
+                if (currentUser && currentUser.role === "owner") {
+                    const activityContainer = document.createElement("div");
+                    activityContainer.className = "activity-list";
+                    activityContainer.hidden = true;
+                    const activityButton =
+                        document.createElement("button");
+                    activityButton.type = "button";
+                    activityButton.textContent = "Document activity";
+                    activityButton.addEventListener("click", function() {
+                        activityContainer.hidden = !activityContainer.hidden;
+                        if (!activityContainer.hidden) {
+                            loadDocumentActivity(
+                                doc.document_id,
+                                activityContainer
+                            );
+                        }
+                    });
+                    actions.appendChild(activityButton);
+                    documentCard.appendChild(
+                        createShareControls(doc)
+                    );
+                    documentCard.appendChild(activityContainer);
+                }
+
+                documentsList.appendChild(documentCard);
+
+            });
+
+        }
+
+        function createDownloadButton(doc) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = "⬇ Download";
+            button.className = "download-button";
+            button.addEventListener("click", function() {
+                downloadDocument(doc.document_id, doc.filename);
+            });
+            return button;
+        }
+
+        function createEditButton(doc) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.textContent = "Edit details";
+            button.addEventListener("click", function() {
+                editDocumentMetadata(doc);
+            });
+            return button;
+        }
+
+        async function loadDocumentActivity(documentId, container) {
+            container.textContent = "Loading document activity...";
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/" + documentId + "/activity",
+                    {headers: {"Authorization": "Bearer " + token}}
+                );
+                const data = await response.json();
+                if (!response.ok) {
+                    container.textContent =
+                        data.detail || "Unable to load activity.";
+                    return;
+                }
+
+                container.replaceChildren();
+                (data.activity || []).forEach(function(event) {
+                    const entry = document.createElement("p");
+                    entry.className = "audit-entry";
+                    entry.textContent =
+                        event.action + " | actor " +
+                        (event.actor_id ?? "system") + " | " +
+                        event.created_at + " | " +
+                        JSON.stringify(event.details || {});
+                    container.appendChild(entry);
+                });
+                if (!data.activity || data.activity.length === 0) {
+                    container.textContent = "No activity recorded yet.";
+                }
+            } catch (error) {
+                container.textContent = "Server connection failed.";
+                console.error("Document activity error:", error);
+            }
+        }
+
+        async function editDocumentMetadata(doc) {
+            const filename = prompt("Document filename:", doc.filename);
+            if (filename === null) {
+                return;
+            }
+            const category = prompt(
+                "Document category:",
+                doc.category || ""
+            );
+            if (category === null) {
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/" + doc.document_id,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            filename: filename,
+                            category: category
+                        })
+                    }
+                );
+                const data = await response.json();
+                if (!response.ok) {
+                    alert(data.detail || "Unable to update document details.");
+                    return;
+                }
+
+                if (currentUser.role === "owner") {
+                    await loadDocuments();
+                } else {
+                    await loadSharedDocuments();
+                }
+            } catch (error) {
+                alert("Unable to connect to the server.");
+                console.error("Document metadata update error:", error);
+            }
+        }
+
+        function createShareControls(doc) {
+            const manager = document.createElement("div");
+            manager.className = "share-controls";
+
+            const viewerSelect = document.createElement("select");
+            viewerSelect.setAttribute("aria-label", "Select a viewer");
+
+            const placeholder = document.createElement("option");
+            placeholder.value = "";
+            placeholder.textContent = viewers.length
+                ? "Select a viewer to share with"
+                : "No viewer accounts available";
+            viewerSelect.appendChild(placeholder);
+
+            viewers.forEach(function(viewer) {
+                const option = document.createElement("option");
+                option.value = viewer.user_id;
+                option.textContent =
+                    viewer.full_name + " (" + viewer.email + ")";
+                viewerSelect.appendChild(option);
+            });
+
+            function permissionControl(labelText, checked) {
+                const label = document.createElement("label");
+                label.className = "permission-label";
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.checked = checked;
+                label.append(checkbox, " " + labelText);
+                return {label: label, checkbox: checkbox};
+            }
+
+            const readControl = permissionControl("Read", true);
+            const editControl = permissionControl("Edit", false);
+            const downloadControl = permissionControl("Download", false);
+
+            const shareButton = document.createElement("button");
+            shareButton.type = "button";
+            shareButton.textContent = "Grant / update access";
+            shareButton.disabled = viewers.length === 0;
+            shareButton.addEventListener("click", function() {
+                const viewerUserId = viewerSelect.value;
+                const message = manager.querySelector(".permission-message");
+
+                if (!viewerUserId) {
+                    message.textContent = "Select a viewer first.";
+                    message.style.color = "red";
+                    return;
+                }
+
+                if (!readControl.checkbox.checked) {
+                    message.textContent =
+                        "Read is required. Use Revoke to remove access.";
+                    message.style.color = "red";
+                    return;
+                }
+
+                shareDocument(
+                    doc.document_id,
+                    Number(viewerUserId),
+                    message,
+                    {
+                        can_read: readControl.checkbox.checked,
+                        can_edit: editControl.checkbox.checked,
+                        can_download: downloadControl.checkbox.checked
+                    }
+                );
+            });
+
+            manager.append(
+                viewerSelect,
+                readControl.label,
+                editControl.label,
+                downloadControl.label,
+                shareButton
+            );
+
+            const permissions = document.createElement("div");
+            permissions.className = "permission-list";
+
+            (doc.permissions || []).forEach(function(permission) {
+                const entry = document.createElement("div");
+                entry.className = "permission-entry";
+
+                const description = document.createElement("p");
+                description.textContent =
+                    permission.full_name + " (" + permission.email + ") — " +
+                    (permission.can_read ? "Read" : "No read") +
+                    (permission.can_edit ? ", Edit" : "") +
+                    (permission.can_download ? ", Download" : "");
+
+                const revokeButton = document.createElement("button");
+                revokeButton.type = "button";
+                revokeButton.textContent = "Revoke";
+                revokeButton.className = "delete-button";
+                revokeButton.addEventListener("click", function() {
+                    revokeDocumentPermission(
+                        doc.document_id,
+                        permission.user_id
+                    );
+                });
+
+                entry.append(description, revokeButton);
+                permissions.appendChild(entry);
+            });
+
+            manager.appendChild(permissions);
+
+            const status = document.createElement("p");
+            status.className = "permission-message";
+            manager.appendChild(status);
+
+            return manager;
+        }
+
+        async function shareDocument(
+            documentId,
+            viewerUserId,
+            statusElement,
+            permissions
+        ) {
+            statusElement.textContent = "Saving access...";
+            statusElement.style.color = "black";
+
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/" + documentId + "/share",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            viewer_user_id: viewerUserId,
+                            can_read: permissions.can_read,
+                            can_edit: permissions.can_edit,
+                            can_download: permissions.can_download
+                        })
+                    }
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    statusElement.textContent =
+                        data.detail || "Unable to grant document access.";
+                    statusElement.style.color = "red";
+                    return;
+                }
+
+                await loadDocuments();
+            } catch (error) {
+                statusElement.textContent =
+                    "Unable to connect to the server.";
+                statusElement.style.color = "red";
+                console.error("Share document error:", error);
+            }
+        }
+
+        async function revokeDocumentPermission(
+            documentId,
+            viewerUserId
+        ) {
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/" + documentId +
+                        "/share/" + viewerUserId,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert(data.detail || "Unable to revoke document access.");
+                    return;
+                }
+
+                await loadDocuments();
+            } catch (error) {
+                alert("Unable to connect to the server.");
+                console.error("Revoke permission error:", error);
+            }
+        }
+
+        async function loadSharedDocuments() {
+            sharedDocumentsList.textContent = "Loading shared documents...";
+
+            try {
+                const response = await fetch(
+                    API_URL + "/documents/shared-with-me",
+                    {
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (response.status === 401) {
+                    localStorage.removeItem("access_token");
+                    window.location.href = "index.html";
+                    return;
+                }
+
+                if (!response.ok) {
+                    sharedDocumentsList.textContent =
+                        "Unable to load shared documents (" +
+                        response.status + ").";
+                    return;
+                }
+
+                const data = await response.json();
+                allSharedDocuments = data.documents || [];
+                document.getElementById("sharedDocumentsCount").textContent =
+                    data.total_documents ?? allSharedDocuments.length;
+                renderSharedDocuments(allSharedDocuments);
+            } catch (error) {
+                sharedDocumentsList.textContent =
+                    "Server connection failed.";
+                console.error("Shared documents error:", error);
+            }
+        }
+
+        function renderSharedDocuments(documents) {
+            sharedDocumentsList.replaceChildren();
+
+            if (documents.length === 0) {
+                sharedDocumentsList.textContent =
+                    allSharedDocuments.length === 0
+                        ? "No documents have been shared with you yet."
+                        : "No matching documents found.";
+                sharedDocumentsList.className = "empty";
+                return;
+            }
+
+            sharedDocumentsList.className = "";
+
+            documents.forEach(function(doc) {
+                const card = document.createElement("div");
+                card.className = "document-card";
+
+                const name = document.createElement("h3");
+                name.textContent = "📄 " + doc.filename;
+
+                const category = document.createElement("p");
+                category.textContent =
+                    "Category: " + (doc.category || "Not specified");
+
+                const owner = document.createElement("p");
+                owner.textContent =
+                    "Owner: " + (doc.owner_name || "Unknown") +
+                    (doc.owner_email ? " (" + doc.owner_email + ")" : "");
+
+                const uploaded = document.createElement("p");
+                uploaded.textContent =
+                    "Uploaded: " + formatUploadDate(doc.created_at);
+
+                const actions = document.createElement("div");
+                actions.className = "document-actions";
+
+                const viewButton = document.createElement("button");
+                viewButton.type = "button";
+                viewButton.textContent = "👁 View";
+                viewButton.addEventListener("click", function() {
+                    openDocument(doc.document_id);
+                });
+
+                const downloadButton = document.createElement("button");
+                downloadButton.type = "button";
+                downloadButton.textContent = "⬇ Download";
+                downloadButton.className = "download-button";
+                downloadButton.addEventListener("click", function() {
+                    downloadDocument(doc.document_id, doc.filename);
+                });
+
+                actions.append(viewButton);
+                if (doc.can_download) {
+                    actions.append(downloadButton);
+                }
+                if (doc.can_edit) {
+                    actions.append(createEditButton(doc));
+                }
+                card.append(name, category, owner, uploaded, actions);
+                sharedDocumentsList.appendChild(card);
+            });
+        }
+
+        function formatUploadDate(value) {
+            const date = new Date(value);
+            return Number.isNaN(date.getTime())
+                ? "Unknown"
+                : date.toLocaleString();
+        }
+
+        function uploadDateMatches(doc, dateFrom, dateTo) {
+            if (!dateFrom && !dateTo) {
+                return true;
+            }
+
+            const date = new Date(doc.created_at);
+            if (Number.isNaN(date.getTime())) {
+                return false;
+            }
+            const localDate = [
+                date.getFullYear(),
+                String(date.getMonth() + 1).padStart(2, "0"),
+                String(date.getDate()).padStart(2, "0")
+            ].join("-");
+
+            return (!dateFrom || localDate >= dateFrom) &&
+                (!dateTo || localDate <= dateTo);
+        }
+
+        function searchDocuments(documents, searchText, dateFrom, dateTo) {
+            const query = searchText.toLowerCase().trim();
+            return documents.filter(function(doc) {
+                const matchesText = [
+                    doc.filename,
+                    doc.category,
+                    doc.owner_name,
+                    doc.owner_email
+                ].some(function(value) {
+                    return (value || "").toLowerCase().includes(query);
+                });
+                return matchesText &&
+                    uploadDateMatches(doc, dateFrom, dateTo);
+            });
+        }
+
+        searchInput.addEventListener("input", function() {
+            renderDocuments(searchDocuments(
+                allDocuments, searchInput.value,
+                ownerDateFrom.value, ownerDateTo.value
+            ));
+        });
+
+        ownerDateFrom.addEventListener("input", function() {
+            searchInput.dispatchEvent(new Event("input"));
+        });
+        ownerDateTo.addEventListener("input", function() {
+            searchInput.dispatchEvent(new Event("input"));
+        });
+
+        sharedSearchInput.addEventListener("input", function() {
+            renderSharedDocuments(searchDocuments(
+                allSharedDocuments, sharedSearchInput.value,
+                sharedDateFrom.value, sharedDateTo.value
+            ));
+        });
+        sharedDateFrom.addEventListener("input", function() {
+            sharedSearchInput.dispatchEvent(new Event("input"));
+        });
+        sharedDateTo.addEventListener("input", function() {
+            sharedSearchInput.dispatchEvent(new Event("input"));
+        });
+
+        // View document in a new browser tab
+
+        async function openDocument(documentId) {
+
+            const newTab = window.open("about:blank", "_blank");
+
+            try {
+
+                const response = await fetch(
+                    API_URL + "/documents/" + documentId + "/view",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+
+                    if (newTab) {
+                        newTab.close();
+                    }
+
+                    handleDocumentError(response.status);
+                    return;
+
+                }
+
+                const fileBlob = await response.blob();
+
+                const fileURL = URL.createObjectURL(fileBlob);
+
+                if (newTab) {
+
+                    newTab.location.href = fileURL;
+
+                } else {
+
+                    URL.revokeObjectURL(fileURL);
+
+                    alert("Please allow pop-ups to view this document.");
+                    return;
+
+                }
+
+                setTimeout(function() {
+                    URL.revokeObjectURL(fileURL);
+                }, 60000);
+
+            } catch (error) {
+
+                if (newTab) {
+                    newTab.close();
+                }
+
+                alert("Server connection failed while opening the document.");
+
+                console.error("Document opening error:", error);
+
+            }
+
+        }
+
+        // Download document to the computer
+
+        async function downloadDocument(documentId, filename) {
+
+            try {
+
+                const response = await fetch(
+                    API_URL + "/documents/" + documentId + "/download",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    }
+                );
+
+                if (!response.ok) {
+
+                    handleDocumentError(response.status);
+                    return;
+
+                }
+
+                const fileBlob = await response.blob();
+
+                const fileURL = URL.createObjectURL(fileBlob);
+
+                const downloadLink = document.createElement("a");
+
+                downloadLink.href = fileURL;
+                downloadLink.download = filename;
+
+                document.body.appendChild(downloadLink);
+
+                downloadLink.click();
+
+                downloadLink.remove();
+
+                setTimeout(function() {
+                    URL.revokeObjectURL(fileURL);
+                }, 60000);
+
+            } catch (error) {
+
+                alert("Server connection failed while downloading the document.");
+
+                console.error("Document download error:", error);
+
+            }
+
+        }
+
+        // Delete document using the backend API
+
+        async function deleteDocument(documentId, filename) {
+
+            const confirmDelete = confirm(
+                "Are you sure you want to delete " + filename + "?"
+            );
+
+            if (!confirmDelete) {
+                return;
+            }
+
+            try {
+
+                const response = await fetch(
+                    API_URL + "/documents/" + documentId,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            "Authorization": "Bearer " + token,
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                if (response.status === 401) {
+
+                    localStorage.removeItem("access_token");
+                    window.location.href = "index.html";
+                    return;
+
+                }
+
+                if (!response.ok) {
+
+                    handleDocumentError(response.status);
+                    return;
+
+                }
+
+                alert("Document deleted successfully!");
+
+                // Refresh the document list after deletion
+                await loadDocuments();
+
+            } catch (error) {
+
+                alert(
+                    "Server connection failed while deleting the document."
+                );
+
+                console.error("Delete error:", error);
+
+            }
+
+        }
+
+        // Handle backend authorization errors
+
+        function handleDocumentError(status) {
+
+            if (status === 401) {
+
+                localStorage.removeItem("access_token");
+                window.location.href = "index.html";
+
+            } else if (status === 403) {
+
+                alert(
+                    "Access denied! You do not have permission to access this document."
+                );
+
+            } else if (status === 404) {
+
+                alert("Document not found.");
+
+            } else {
+
+                alert("Document request failed. HTTP Status: " + status);
+
+            }
+
+        }
+
+        // Logout
+
+        logoutBtn.addEventListener("click", async function() {
+            try {
+                const response = await fetch(API_URL + "/logout", {
+                    method: "POST",
+                    headers: {"Authorization": "Bearer " + token}
+                });
+                if (!response.ok && response.status !== 401) {
+                    alert(
+                        "The server could not revoke this session. " +
+                        "The local session will still be cleared."
+                    );
+                }
+            } catch (error) {
+                alert(
+                    "The server could not be reached to revoke this session. " +
+                    "The local session will still be cleared."
+                );
+                console.error("Logout request error:", error);
+            }
+            localStorage.removeItem("access_token");
+            window.location.href = "index.html";
+        });
+
+    </script>
+
+</body>
+</html>

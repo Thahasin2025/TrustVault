@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustVault - Secure Document Sharing</title>
+    <script>
+        if (
+            ["localhost", "127.0.0.1"].includes(window.location.hostname) &&
+            window.location.port !== "8000"
+        ) {
+            window.location.replace(
+                "http://" + window.location.hostname + ":8000/"
+            );
+        }
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="login-box">
+
+            <h1>TrustVault</h1>
+
+            <p class="subtitle">
+                Secure Document Sharing Platform
+            </p>
+
+            <!-- LOGIN FORM -->
+            <div id="loginSection">
+
+                <h2>Welcome Back</h2>
+
+                <form id="loginForm">
+
+                    <label for="email">Email Address</label>
+                    <input
+                        type="email"
+                        id="email"
+                        placeholder="Enter your email"
+                        required
+                    >
+
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Enter your password"
+                        required
+                    >
+
+                    <button type="submit">Login</button>
+
+                    <p id="message"></p>
+
+                </form>
+
+                <p>
+                    Don't have an account?
+                    <a href="#" onclick="showRegister(); return false;">
+                        Register
+                    </a>
+                </p>
+
+            </div>
+
+            <!-- REGISTRATION FORM -->
+            <div id="registerSection" style="display: none;">
+
+                <h2>Create Account</h2>
+
+                <form id="registerForm">
+
+                    <label for="full_name">Full Name</label>
+                    <input
+                        type="text"
+                        id="full_name"
+                        placeholder="Enter your full name"
+                        required
+                    >
+
+                    <label for="register_email">Email Address</label>
+                    <input
+                        type="email"
+                        id="register_email"
+                        placeholder="Enter your email"
+                        required
+                    >
+
+                    <label for="register_password">Password</label>
+                    <input
+                        type="password"
+                        id="register_password"
+                        placeholder="Create a password"
+                        required
+                    >
+
+                    <label for="confirm_password">Confirm Password</label>
+                    <input
+                        type="password"
+                        id="confirm_password"
+                        placeholder="Re-enter your password"
+                        required
+                    >
+
+                    <label for="role">Select Role</label>
+                    <select id="role" required>
+                        <option value="">Choose your role</option>
+                        <option value="owner">Document Owner</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+
+                    <button type="submit">Create Account</button>
+
+                    <p id="registerMessage"></p>
+
+                </form>
+
+                <p>
+                    Already have an account?
+                    <a href="#" onclick="showLogin(); return false;">
+                        Login
+                    </a>
+                </p>
+
+            </div>
+
+            <p class="footer">
+                © 2026 TrustVault
+            </p>
+
+        </div>
+    </div>
+
+    <script>
+        function showRegister() {
+            document.getElementById("loginSection").style.display = "none";
+            document.getElementById("registerSection").style.display = "block";
+        }
+
+        function showLogin() {
+            document.getElementById("registerSection").style.display = "none";
+            document.getElementById("loginSection").style.display = "block";
+        }
+    </script>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
