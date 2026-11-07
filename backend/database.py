@@ -1,4 +1,3 @@
-
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
@@ -16,7 +15,22 @@ database_url = URL.create(
     database=os.getenv("DB_NAME")
 )
 
-engine = create_engine(database_url)
+# Cloud MySQL (TiDB / Aiven) ki SSL kavali.
+# Render lo DB_SSL=true pedithe SSL on avtundi. Local lo em pettakapothe off.
+connect_args = {}
+if os.getenv("DB_SSL", "false").lower() == "true":
+    connect_args = {
+        "ssl_ca": "/etc/ssl/certs/ca-certificates.crt",
+        "ssl_verify_cert": True,
+        "ssl_verify_identity": True,
+    }
+
+engine = create_engine(
+    database_url,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 
 # Base class for database models
 Base = declarative_base()
