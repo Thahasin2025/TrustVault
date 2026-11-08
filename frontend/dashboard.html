@@ -857,9 +857,7 @@
 
     <script>
 
-        const API_URL = window.location.port === "8000"
-            ? window.location.origin
-            : "http://127.0.0.1:8000";
+        const API_URL = window.location.origin;
 
         async function readApiResponse(response) {
             const body = await response.text();
@@ -2706,6 +2704,7 @@
                         "The server could not revoke this session. " +
                         "The local session will still be cleared."
                     );
+                    const API_URL = window.location.origin;
                 }
             } catch (error) {
                 alert(
