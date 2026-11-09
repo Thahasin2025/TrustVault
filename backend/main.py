@@ -1,3 +1,4 @@
+from typing import Optional
 
 import logging
 import os
@@ -19,11 +20,12 @@ from fastapi import (
     Form
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field, model_validator
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.sql import func
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -55,6 +57,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
+@app.exception_handler(OperationalError)
+async def database_unavailable(request: Request, exc: OperationalError):
+    logger.error("Database operation failed for %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "The database is unavailable. Please try again after the database service is restored."}
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -68,7 +79,8 @@ app.add_middleware(
 
 security = HTTPBearer()
 
-UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+UPLOAD_DIR = (Path("/tmp/trustvault-uploads") if os.getenv("VERCEL") or os.getenv("TRUSTVAULT_DEMO") == "1"
+              else Path(__file__).resolve().parent.parent / "uploads")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -196,7 +208,7 @@ def has_document_permission(
     return bool(getattr(permission, permission_name))
 
 
-def get_document_request_context(request: Request) -> tuple[int | None, str]:
+def get_document_request_context(request: Request) -> tuple[Optional[int], str]:
     path_parts = request.url.path.strip("/").split("/")
     document_id = None
     if len(path_parts) > 1 and path_parts[0] == "documents":
@@ -251,6 +263,8 @@ async def audit_security_requests(request, call_next):
         raise
 
     if not _record_security_request(request, actor_id, response.status_code):
+        if response.status_code == 503:
+            return response
         return JSONResponse(
             status_code=503,
             content={
@@ -265,7 +279,7 @@ async def audit_security_requests(request, call_next):
 
 def _record_security_request(
     request: Request,
-    actor_id: int | None,
+    actor_id: Optional[int],
     status_code: int
 ) -> bool:
     document_id, required_permission = get_document_request_context(request)
@@ -399,13 +413,13 @@ class ShareDocumentRequest(BaseModel):
 
 
 class UpdateDocumentRequest(BaseModel):
-    filename: str | None = Field(default=None, min_length=1, max_length=255)
-    category: str | None = Field(default=None, min_length=1, max_length=50)
+    filename: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    category: Optional[str] = Field(default=None, min_length=1, max_length=50)
 
 
 class AdminUserUpdateRequest(BaseModel):
-    role: Literal["admin", "owner", "viewer"] | None = None
-    is_active: bool | None = None
+    role: Optional[Literal["admin", "owner", "viewer"]] = None
+    is_active: Optional[bool] = None
 
     @model_validator(mode="after")
     def require_update(self):
@@ -906,7 +920,7 @@ def validate_file_content(extension: str, content: bytes) -> bool:
     return detect_file_content_type(extension, content) is not None
 
 
-def detect_file_content_type(extension: str, content: bytes) -> str | None:
+def detect_file_content_type(extension: str, content: bytes) -> Optional[str]:
     if extension == ".pdf":
         return "application/pdf" if content.startswith(b"%PDF-") else None
 
@@ -1008,7 +1022,9 @@ async def upload_document(
     )
 
     try:
-        stored_path.write_bytes(content)
+        database_storage = db.get_bind().dialect.name == "postgresql"
+        if not database_storage:
+            stored_path.write_bytes(content)
 
         document = models.Document(
             filename=filename,
@@ -1021,6 +1037,8 @@ async def upload_document(
 
         db.add(document)
         db.flush()
+        if database_storage:
+            db.add(models.DocumentContent(document_id=document.id, content=content))
 
         create_audit_log(
             db,
@@ -1437,6 +1455,18 @@ def purge_document(
             detail="Deleted document not found or already purged"
         )
 
+    if db.get_bind().dialect.name == "postgresql":
+        stored_content = db.get(models.DocumentContent, document.id)
+        if stored_content:
+            db.delete(stored_content)
+        document.storage_path = ""
+        document.purged_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        create_audit_log(db, current_user.id, document.id, "DOCUMENT_FILE_PURGED",
+                         {"filename": document.filename, "active_storage_file_removed": True, "metadata_retained": True})
+        db.commit()
+        return {"message": "Document file removed from private storage", "document_id": document.id,
+                "purged_at": document.purged_at, "metadata_retained": True}
+
     file_path = Path(os.path.abspath(document.storage_path))
     try:
         file_path.relative_to(UPLOAD_DIR.resolve())
@@ -1791,7 +1821,10 @@ def view_document(
             detail="You do not have read permission for this document"
         )
 
-    file_path = get_private_file_path(document)
+    database_content = db.get(models.DocumentContent, document.id) if db.get_bind().dialect.name == "postgresql" else None
+    if db.get_bind().dialect.name == "postgresql" and database_content is None:
+        raise HTTPException(status_code=404, detail="Stored document file not found")
+    file_path = None if database_content else get_private_file_path(document)
 
     try:
         create_audit_log(
@@ -1820,7 +1853,10 @@ def view_document(
         media_type = document.content_type or "application/octet-stream"
 
     safe_filename = quote(document.filename)
-    return FileResponse(
+    return (Response(content=database_content.content, media_type=media_type, headers={
+        "Content-Disposition": f"inline; filename*=UTF-8''{safe_filename}",
+        "X-Content-Type-Options": "nosniff"
+    }) if database_content else FileResponse(
         path=str(file_path),
         media_type=media_type,
         headers={
@@ -1829,7 +1865,7 @@ def view_document(
             ),
             "X-Content-Type-Options": "nosniff"
         }
-    )
+    ))
 
 
 # ---------------- SECURE DOCUMENT DOWNLOAD ----------------
@@ -1857,7 +1893,10 @@ def download_document(
             detail="You do not have download permission for this document"
         )
 
-    file_path = get_private_file_path(document)
+    database_content = db.get(models.DocumentContent, document.id) if db.get_bind().dialect.name == "postgresql" else None
+    if db.get_bind().dialect.name == "postgresql" and database_content is None:
+        raise HTTPException(status_code=404, detail="Stored document file not found")
+    file_path = None if database_content else get_private_file_path(document)
     try:
         create_audit_log(
             db,
@@ -1879,7 +1918,10 @@ def download_document(
     if not media_type:
         media_type = document.content_type or "application/octet-stream"
 
-    return FileResponse(
+    return (Response(content=database_content.content, media_type=media_type, headers={
+        "Content-Disposition": f"attachment; filename*=UTF-8''{quote(document.filename)}",
+        "X-Content-Type-Options": "nosniff"
+    }) if database_content else FileResponse(
         path=str(file_path),
         media_type=media_type,
         headers={
@@ -1888,7 +1930,7 @@ def download_document(
             ),
             "X-Content-Type-Options": "nosniff"
         }
-    )
+    ))
 
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"

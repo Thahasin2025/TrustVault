@@ -1,3 +1,4 @@
+from typing import Optional
 import hashlib
 import hmac
 import json
@@ -113,6 +114,10 @@ def _acquire_audit_lock(db: SQLAlchemySession) -> None:
         return
 
     dialect = db.get_bind().dialect.name
+    if dialect == "postgresql":
+        db.execute(text("SELECT pg_advisory_xact_lock(784233417)"))
+        db.info[_LOCK_INFO_KEY] = ("postgresql", None)
+        return
     if dialect == "mysql":
         raw_connection = db.connection().connection.driver_connection
         acquired = db.execute(
@@ -186,7 +191,7 @@ def _write_anchor(log_id: int, current_hash: str) -> None:
         raise
 
 
-def _read_anchor() -> dict[str, Any] | None:
+def _read_anchor() -> Optional[dict[str, Any]]:
     try:
         with AUDIT_ANCHOR_PATH.open(encoding="utf-8") as anchor_file:
             payload = json.load(anchor_file)
@@ -269,10 +274,10 @@ def _prevent_bulk_audit_log_mutation(execute_state: Any) -> None:
 
 def create_audit_log(
     db: SQLAlchemySession,
-    actor_id: int | None,
-    document_id: int | None,
+    actor_id: Optional[int],
+    document_id: Optional[int],
     action: str,
-    details: dict[str, Any] | None = None
+    details: Optional[dict[str, Any]] = None
 ) -> models.AuditLog:
     _acquire_audit_lock(db)
 
@@ -308,10 +313,18 @@ def create_audit_log(
         db.flush()
     finally:
         db.info.pop(_APPEND_INFO_KEY, None)
-    db.info[_PENDING_ANCHOR_KEY] = {
-        "last_log_id": log_entry.id,
-        "current_hash": log_entry.current_hash
-    }
+    if db.get_bind().dialect.name == "postgresql":
+        head = db.get(models.AuditHead, 1)
+        if head is None:
+            head = models.AuditHead(id=1, last_log_id=log_entry.id, current_hash=log_entry.current_hash)
+            db.add(head)
+        else:
+            head.last_log_id, head.current_hash = log_entry.id, log_entry.current_hash
+    else:
+        db.info[_PENDING_ANCHOR_KEY] = {
+            "last_log_id": log_entry.id,
+            "current_hash": log_entry.current_hash
+        }
     return log_entry
 
 
@@ -368,7 +381,11 @@ def verify_audit_chain(db: SQLAlchemySession) -> dict[str, Any]:
 
     anchor = None
     try:
-        anchor = _read_anchor()
+        if db.get_bind().dialect.name == "postgresql":
+            head = db.get(models.AuditHead, 1)
+            anchor = {"last_log_id": head.last_log_id, "current_hash": head.current_hash} if head else None
+        else:
+            anchor = _read_anchor()
     except (OSError, ValueError, json.JSONDecodeError) as error:
         if first_issue is None:
             first_issue = f"Audit anchor verification failed: {error}"

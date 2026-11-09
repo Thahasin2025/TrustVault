@@ -1,3 +1,4 @@
+from typing import Optional
 
 import os
 import jwt
@@ -75,7 +76,7 @@ def verify_access_token(token: str):
         return None
 
 
-def get_access_token_version(token: str) -> int | None:
+def get_access_token_version(token: str) -> Optional[int]:
     try:
         payload = jwt.decode(
             token,
@@ -90,7 +91,7 @@ def get_access_token_version(token: str) -> int | None:
         return None
 
 
-def get_access_token_expiration(token: str) -> datetime | None:
+def get_access_token_expiration(token: str) -> Optional[datetime]:
     try:
         payload = jwt.decode(
             token,

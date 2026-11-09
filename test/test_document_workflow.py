@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.exc import OperationalError
 
 from backend import audit, auth, login_throttle, main, models
 from backend.database import Base
@@ -40,6 +41,21 @@ def login(client, email):
     return {
         "Authorization": "Bearer " + response.json()["access_token"]
     }
+
+
+def test_login_reports_database_unavailable(monkeypatch):
+    def fail_database(*args, **kwargs):
+        raise OperationalError("SELECT 1", {}, Exception("connection refused"))
+
+    monkeypatch.setattr(main, "reserve_login_attempt", fail_database)
+    monkeypatch.setattr(main, "_record_security_request", lambda *args: False)
+    with TestClient(main.app) as client:
+        response = client.post(
+            "/login",
+            json={"email": "owner@example.com", "password": "test-password"}
+        )
+    assert response.status_code == 503
+    assert "database is unavailable" in response.json()["detail"].lower()
 
 
 def test_owner_document_sharing_workflow(tmp_path, monkeypatch):
@@ -884,6 +900,22 @@ def test_admin_user_management_and_suspension(tmp_path, monkeypatch):
             assert "DOCUMENT_REQUEST" in audit_actions
             assert "PERMISSION_GRANTED_OR_UPDATED" in audit_actions
             assert "PERMISSION_REVOKED" in audit_actions
+            admin_user_updates = [
+                log for log in audit_logs_response.json()["audit_logs"]
+                if log["action"] == "ADMIN_USER_UPDATED"
+                and log["actor_id"] == admin_id
+                and log["details"]["target_user_id"] == viewer["user_id"]
+            ]
+            assert any(
+                log["details"]["previous_is_active"] is True
+                and log["details"]["is_active"] is False
+                for log in admin_user_updates
+            )
+            assert any(
+                log["details"]["previous_role"] == "viewer"
+                and log["details"]["role"] == "owner"
+                for log in admin_user_updates
+            )
             admin_login = next(
                 log for log in audit_logs_response.json()["audit_logs"]
                 if log["action"] == "USER_LOGGED_IN"

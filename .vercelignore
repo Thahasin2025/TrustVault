@@ -1,0 +1,8 @@
+.env
+.env.*
+.git
+.venv
+uploads
+test
+.pytest_cache
+fastapi-starter

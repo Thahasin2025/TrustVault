@@ -1,4 +1,6 @@
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -194,6 +196,70 @@ def test_audit_verification_accepts_configured_historical_key(
         assert result["invalid_records"] == 0
     finally:
         db.close()
+
+
+def test_concurrent_audit_appends_remain_serialized_and_verifiable(
+    tmp_path,
+    monkeypatch
+):
+    engine = create_engine(
+        "sqlite:///" + str(tmp_path / "concurrent-audit.sqlite")
+    )
+    test_session = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine
+    )
+    Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(
+        audit,
+        "AUDIT_ANCHOR_PATH",
+        tmp_path / ".audit-anchor"
+    )
+    start_together = threading.Barrier(2)
+
+    def append_event(action):
+        db = test_session()
+        try:
+            start_together.wait(timeout=5)
+            entry = audit.create_audit_log(
+                db,
+                actor_id=None,
+                document_id=None,
+                action=action
+            )
+            db.commit()
+            return entry.id
+        finally:
+            db.close()
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [
+                executor.submit(append_event, "CONCURRENT_EVENT_ONE"),
+                executor.submit(append_event, "CONCURRENT_EVENT_TWO")
+            ]
+            created_ids = [future.result(timeout=15) for future in futures]
+
+        db = test_session()
+        try:
+            result = audit.verify_audit_chain(db)
+            assert sorted(created_ids) == [1, 2]
+            assert result["valid"] is True
+            assert result["checked_records"] == 2
+            assert result["invalid_records"] == 0
+            latest = db.query(models.AuditLog).order_by(
+                models.AuditLog.id.desc()
+            ).first()
+            assert audit._read_anchor() == {
+                "last_log_id": latest.id,
+                "current_hash": latest.current_hash
+            }
+        finally:
+            db.close()
+    finally:
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 
 def test_admin_activity_includes_actor_role_and_saves_successful_verification(
@@ -416,8 +482,8 @@ def test_admin_verification_is_protected_and_reports_invalid_chain(
         ).read_text(encoding="utf-8")
         assert '"/admin/audit-logs/verification"' in dashboard
         assert '"No verification has been performed yet."' in dashboard
-        assert '"Tampered or Invalid Records"' in dashboard
-        assert "cannot safely distinguish between them." in dashboard
+        assert '"Records Failing Verification"' in dashboard
+        assert "cause. Preserve the audit data and anchor unchanged." in dashboard
         assert '"Existing records still failing verification"' in dashboard
         assert '"Newest records and the current signing key"' in dashboard
     finally:

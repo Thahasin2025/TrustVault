@@ -8,7 +8,7 @@
     <script>
         if (
             ["localhost", "127.0.0.1"].includes(window.location.hostname) &&
-            window.location.port !== "8000"
+            window.location.port === "5500"
         ) {
             window.location.replace(
                 "http://" + window.location.hostname + ":8000/"
@@ -857,9 +857,7 @@
 
     <script>
 
-        const API_URL = window.location.port === "8000"
-            ? window.location.origin
-            : "http://127.0.0.1:8000";
+        const API_URL = window.location.origin;
 
         async function readApiResponse(response) {
             const body = await response.text();
@@ -1471,13 +1469,13 @@
                 explanation.className =
                     "verification-message caution";
                 explanation.textContent =
-                    "The affected record hashes do not match the currently " +
-                    "configured audit signing key. A key/configuration change " +
-                    "or modified record data can cause this; the verifier " +
-                    "cannot safely distinguish between them. Preserve the " +
-                    "audit data and anchor unchanged. If a historical audit " +
-                    "key is available in protected backups, use it to verify " +
-                    "the original chain before considering any recovery.";
+                    "Verification can fail because of a record hash, chain " +
+                    "link, or anchor problem. The reason above identifies " +
+                    "the first reported issue; it does not establish its " +
+                    "cause. Preserve the audit data and anchor unchanged. " +
+                    "If a historical audit key is available in protected " +
+                    "backups, use it to verify the original chain before " +
+                    "considering any recovery.";
                 detail.appendChild(explanation);
             }
 
@@ -1491,7 +1489,7 @@
                 ["Verification Status", isValid ? "Verified" : "Failed"],
                 ["Total Audit Records Checked", verification.checked_records],
                 ["Valid Records", verification.valid_records],
-                ["Tampered or Invalid Records", verification.invalid_records],
+                ["Records Failing Verification", verification.invalid_records],
                 ["First Affected Record ID",
                     verification.affected_record_id ?? "—"]
             ];
@@ -1557,8 +1555,8 @@
                     currentKeyDescription.textContent =
                         "The newest " + currentKey.count + " record(s) (" +
                         ids + ") validate with the dedicated audit signing " +
-                        "key and their previous-record links. This does not " +
-                        "clear the FAILED status while older records remain invalid.";
+                        "key and their previous-record links." +
+                        (isValid ? "" : " Overall verification remains failed.");
                 } else if (currentKey.count > 0) {
                     currentKeyDescription.textContent =
                         "The newest " + currentKey.count +
@@ -1567,7 +1565,7 @@
                 } else {
                     currentKeyDescription.textContent =
                         "No newest records currently validate with the " +
-                        "dedicated audit signing key.";
+                        "active audit signing key.";
                 }
                 currentKeyBlock.append(
                     currentKeyHeading,
@@ -1590,7 +1588,7 @@
             result.className = "verification-result";
             result.textContent = "Verification Result: " +
                 (isValid
-                    ? "The audit record chain and trusted anchor are valid."
+                    ? "The audit record chain and anchor checks passed."
                     : (verification.reason || "Integrity verification failed."));
             detail.appendChild(result);
         }

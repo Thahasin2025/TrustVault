@@ -166,6 +166,7 @@ constraints are documented in [THREATS.md](./THREATS.md).
 Run the suite from the repository root:
 
 ```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-test.txt
 .\.venv\Scripts\python.exe -m pytest
 ```
 
@@ -176,5 +177,8 @@ replace a MySQL migration/integration test or browser-based verification.
 ## Project documentation
 
 - [THREATS.md](./THREATS.md): mitigations, test mapping, and residual risks.
+- [BACKLOG.md](./BACKLOG.md): remaining verification and deployment work.
+- [Operations checklist](./documentation/OPERATIONS.md): staging, deployment,
+  backup and audit incident-response prerequisites.
 - [PROMPTS.md](./PROMPTS.md): dated AI-use record; commit references remain
   pending until the project owner creates commits.

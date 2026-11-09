@@ -23,3 +23,5 @@ htmlcov/
 
 # Editor files
 .vscode/
+.vercel
+.env*

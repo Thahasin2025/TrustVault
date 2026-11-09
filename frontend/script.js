@@ -1,7 +1,5 @@
 
-const API_URL = window.location.port === "8000"
-    ? window.location.origin
-    : "http://127.0.0.1:8000";
+const API_URL = window.location.origin;
 
 // Get form elements
 const loginForm = document.getElementById("loginForm");
@@ -108,8 +106,7 @@ registerForm.addEventListener("submit", async function (event) {
 
     } catch (error) {
         registerMessage.textContent =
-            "Could not reach the API server. Open TrustVault from " +
-            "http://127.0.0.1:8000/ and confirm the API is running.";
+            "Could not reach the API server. Confirm TrustVault is running.";
         registerMessage.style.color = "red";
 
         console.error("Registration error:", error);
@@ -210,8 +207,7 @@ loginForm.addEventListener("submit", async function (event) {
 
     } catch (error) {
         message.textContent =
-            "Could not reach the API server. Open TrustVault from " +
-            "http://127.0.0.1:8000/ and confirm the API is running.";
+            "Could not reach the API server. Confirm TrustVault is running.";
         message.style.color = "red";
 
         console.error("Login error:", error);

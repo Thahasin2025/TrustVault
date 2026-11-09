@@ -8,7 +8,7 @@
     <script>
         if (
             ["localhost", "127.0.0.1"].includes(window.location.hostname) &&
-            window.location.port !== "8000"
+            window.location.port === "5500"
         ) {
             window.location.replace(
                 "http://" + window.location.hostname + ":8000/"

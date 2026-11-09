@@ -2,7 +2,7 @@
 import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.engine import URL
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
@@ -16,7 +16,15 @@ database_url = URL.create(
     database=os.getenv("DB_NAME")
 )
 
-engine = create_engine(database_url)
+if os.getenv("DATABASE_URL"):
+    parsed_url = make_url(os.environ["DATABASE_URL"])
+    if parsed_url.get_backend_name() == "postgresql":
+        parsed_url = parsed_url.set(drivername="postgresql+psycopg2")
+    engine = create_engine(parsed_url, pool_pre_ping=True)
+elif os.getenv("TRUSTVAULT_DEMO") == "1":
+    engine = create_engine("sqlite:////tmp/trustvault-demo.sqlite", connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(database_url)
 
 # Base class for database models
 Base = declarative_base()

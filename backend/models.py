@@ -1,7 +1,7 @@
 
 from sqlalchemy import (
     Column, Integer, String, DateTime, Enum,
-    Boolean, ForeignKey, JSON, UniqueConstraint
+    Boolean, ForeignKey, JSON, UniqueConstraint, LargeBinary
 )
 from sqlalchemy.sql import func
 from backend.database import Base
@@ -102,6 +102,19 @@ class DocumentPermission(Base):
     can_download = Column(Boolean, default=False, nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class DocumentContent(Base):
+    __tablename__ = "document_contents"
+    document_id = Column(Integer, ForeignKey("documents.id"), primary_key=True)
+    content = Column(LargeBinary, nullable=False)
+
+
+class AuditHead(Base):
+    __tablename__ = "audit_head"
+    id = Column(Integer, primary_key=True)
+    last_log_id = Column(Integer, nullable=False)
+    current_hash = Column(String(64), nullable=False)
 
 
 # 4. Audit logs table

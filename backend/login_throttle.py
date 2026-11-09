@@ -1,3 +1,4 @@
+from typing import Optional
 import hashlib
 import hmac
 from datetime import datetime, timedelta, timezone
@@ -5,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import case
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.orm import Session
 
 from backend.auth import SECRET_KEY
@@ -43,8 +45,8 @@ def reserve_login_attempt(
     db: Session,
     email: str,
     client_ip: str,
-    now: datetime | None = None
-) -> int | None:
+    now: Optional[datetime] = None
+) -> Optional[int]:
     current_time = now or _now()
     cutoff = current_time - LOGIN_ATTEMPT_WINDOW
     buckets = _buckets(email, client_ip)
@@ -53,11 +55,11 @@ def reserve_login_attempt(
     ).delete(synchronize_session=False)
 
     dialect = db.get_bind().dialect.name
-    if dialect not in ("mysql", "sqlite"):
+    if dialect not in ("mysql", "sqlite", "postgresql"):
         raise RuntimeError(
             f"Login throttling does not support database dialect {dialect}"
         )
-    insert = mysql_insert if dialect == "mysql" else sqlite_insert
+    insert = {"mysql": mysql_insert, "sqlite": sqlite_insert, "postgresql": postgresql_insert}[dialect]
     try:
         for key_hash, _ in sorted(buckets):
             statement = insert(LoginThrottle).values(
@@ -69,7 +71,7 @@ def reserve_login_attempt(
                 statement = statement.on_duplicate_key_update(
                     key_hash=LoginThrottle.key_hash
                 )
-            elif dialect == "sqlite":
+            elif dialect in ("sqlite", "postgresql"):
                 statement = statement.on_conflict_do_nothing(
                     index_elements=[LoginThrottle.key_hash]
                 )
@@ -117,7 +119,7 @@ def reset_account_ip_attempts(
     db: Session,
     email: str,
     client_ip: str,
-    now: datetime | None = None
+    now: Optional[datetime] = None
 ) -> None:
     current_time = now or _now()
     buckets = _buckets(email, client_ip)
