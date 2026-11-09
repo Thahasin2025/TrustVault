@@ -24,7 +24,14 @@ if os.getenv("DATABASE_URL"):
 elif os.getenv("TRUSTVAULT_DEMO") == "1":
     engine = create_engine("sqlite:////tmp/trustvault-demo.sqlite", connect_args={"check_same_thread": False})
 else:
-    engine = create_engine(database_url)
+    connect_args = {}
+    if os.getenv("DB_SSL", "false").lower() == "true":
+        connect_args = {
+            "ssl_ca": "/etc/ssl/certs/ca-certificates.crt",
+            "ssl_verify_cert": True,
+            "ssl_verify_identity": True,
+        }
+    engine = create_engine(database_url, connect_args=connect_args, pool_pre_ping=True, pool_recycle=300)
 
 # Base class for database models
 Base = declarative_base()
